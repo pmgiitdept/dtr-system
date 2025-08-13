@@ -1,0 +1,625 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'images/pmgi.png' %}">
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-left">
+            <span class="company-name">PROFESSIONAL MAINTENANCE GROUP, INC. - PMG TIME CENTRAL</span>
+        </div>
+        <div class="header-right">
+            <img src="{% static 'images/pmgi.png' %}" alt="Logo 1" class="header-logo">
+            <img src="{% static 'images/sgslogos.png' %}" alt="Logo 2" class="header-logo">
+        </div>
+    </header>
+<div class="main-layout">
+  <aside class="sidebar">
+    <h3>📂 Actions</h3>
+    <button class="dtr-summary-btn" onclick="scrollToTable()" style="position: sticky; top: 80px;">📄 DTR Summary</button>
+    <button class="export-btn" onclick="exportTableToExcel('dtr-summary-table')">📥 Export to Excel</button>
+    <button class="account-btn" onclick="location.href='{% url 'accounts_list' %}';">👥 Accounts</button>
+    <button class="transaction-btn" onclick="location.href='{% url 'transaction_history' %}';">📜 History</button>
+    <button type="button" class="account-btn" onclick="location.href='{% url 'client_side_view' %}'">👤 View Client Side</button>
+    <div class="dropdown">
+        <button class="settings-btn" onclick="toggleDropdown()">⚙ Settings ▾</button>
+        <div id="settings-dropdown" class="dropdown-content">
+            <a href="{% url 'admin_settings' %}?section=general">🛠 General Settings</a>
+            <a href="{% url 'admin_settings' %}?section=file">📁 File Management</a>
+            <a href="{% url 'admin_settings' %}?section=users">👥 User Management</a>
+            <a href="{% url 'admin_settings' %}?section=audit">📜 Audit Logs</a>
+        </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <p>Welcome, <strong>{{ request.user.username }}</strong></p>
+      <div class="header-buttons">
+        <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+      </div>
+    </div>
+  </aside>
+  
+  <div class="dashboard-container">
+    <div class="header">
+      <h1>👑 Admin Dashboard</h1>
+    </div>
+
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+          <li class="status-msg">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="POST" action="{% url 'clear_data' %}" onsubmit="return confirm('Are you sure you want to delete ALL records?');" style="margin-bottom: 20px;">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">🚨 Delete All Records</button>
+    </form>
+
+    <div class="upload-section">
+      <select id="fileDropdown" onchange="filterTable()" style="margin-left: 10px;">
+        <option value="">All Files</option>
+        {% for file in uploaded_files %}
+          <option value="{{ file.original_filename }}">{{ file.original_filename }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="sheetFilter" style="margin-left: 10px;">
+        <option value="">-- Filter by Sheet Name --</option>
+        <option value="Sheet 2">SIL</option>
+        <option value="Sheet 3">HEADCOUNT</option>
+        <option value="Sheet 4">PROJECT</option>
+      </select>
+    </div>
+
+    <div class="history-section">
+      <h3>🧾 Uploaded DTR Records</h3>
+
+<div style="overflow-x: auto; overflow-y: auto; max-height: 700px; border: 1px solid #ccc; padding: 10px;">
+  <table id="dtrTableWrapper" order="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; font-size: 14px; min-width: 1500px;">
+    <thead style="background-color: #f2f2f2;">
+      <tr>
+        <th>Employee Code</th>
+        <th>Employee Name</th>
+        <th>Total Hours</th>
+        <th>ND Reg Hrs</th>
+        <th>Absences</th>
+        <th>Tardiness</th>
+        <th>Undertime</th>
+        <th>OT Regular</th>
+        <th>ND OT Reg</th>
+        <th>OT Restday</th>
+        <th>ND Restday</th>
+        <th>OT Rest Excess</th>
+        <th>ND Rest Excess</th>
+        <th>OT Special Holiday</th>
+        <th>ND Special Holiday</th>
+        <th>OT SH Excess</th>
+        <th>ND SH Excess</th>
+        <th>OT Legal Holiday</th>
+        <th>Special Holiday</th>
+        <th>OT Legal Hol Excess</th>
+        <th>ND Legal Hol Excess</th>
+        <th>OT SH on Rest</th>
+        <th>ND SH on Rest</th>
+        <th>OT SH on Rest Excess</th>
+        <th>ND SH on Rest Excess</th>
+        <th>Legal H on Rest Day</th>
+        <th>ND Legal H on Restday</th>
+        <th>OT LegH Rest Excess</th>
+        <th>ND LegH Rest Excess</th>
+        <th>VL Applied</th>
+        <th>SL Applied</th>
+        <th>Back Pay VL</th>
+        <th>Back Pay SL</th>
+        <th>OT Regular Excess</th>
+        <th>ND OT Reg Excess</th>
+        <th>Legal Holiday</th>
+        <th>ND Legal Holiday</th>
+        <th>Overnight Rate</th>
+        <th>Project</th>
+        <th>Sheet Name</th>
+        <th>Upload Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+      <tr>
+        <td>{{ record.employee_code|default_if_none:'' }}</td>
+        <td>{{ record.employee_name|default_if_none:'' }}</td>
+        <td>{{ record.total_hours|default_if_none:'' }}</td>
+        <td>{{ record.nd_reg_hours|default_if_none:'' }}</td>
+        <td>{{ record.absences|default_if_none:'' }}</td>
+        <td>{{ record.tardiness|default_if_none:'' }}</td>
+        <td>{{ record.undertime|default_if_none:'' }}</td>
+        <td>{{ record.ot_regular|default_if_none:'' }}</td>
+        <td>{{ record.nd_ot_reg|default_if_none:'' }}</td>
+        <td>{{ record.ot_restday|default_if_none:'' }}</td>
+        <td>{{ record.nd_restday|default_if_none:'' }}</td>
+        <td>{{ record.ot_rest_excess|default_if_none:'' }}</td>
+        <td>{{ record.nd_rest_excess|default_if_none:'' }}</td>
+        <td>{{ record.ot_special_holiday|default_if_none:'' }}</td>
+        <td>{{ record.nd_special_holiday|default_if_none:'' }}</td>
+        <td>{{ record.ot_sh_excess|default_if_none:'' }}</td>
+        <td>{{ record.nd_sh_excess|default_if_none:'' }}</td>
+        <td>{{ record.ot_legal_holiday|default_if_none:'' }}</td>
+        <td>{{ record.special_holiday|default_if_none:'' }}</td>
+        <td>{{ record.ot_legal_excess|default_if_none:'' }}</td>
+        <td>{{ record.nd_legal_excess|default_if_none:'' }}</td>
+        <td>{{ record.ot_sh_on_rest|default_if_none:'' }}</td>
+        <td>{{ record.nd_sh_on_rest|default_if_none:'' }}</td>
+        <td>{{ record.ot_sh_on_rest_excess|default_if_none:'' }}</td>
+        <td>{{ record.nd_sh_on_rest_excess|default_if_none:'' }}</td>
+        <td>{{ record.legal_h_on_rest|default_if_none:'' }}</td>
+        <td>{{ record.nd_legal_h_on_rest|default_if_none:'' }}</td>
+        <td>{{ record.ot_legh_rest_excess|default_if_none:'' }}</td>
+        <td>{{ record.nd_legh_rest_excess|default_if_none:'' }}</td>
+        <td>{{ record.vl_applied|default_if_none:'' }}</td>
+        <td>{{ record.sl_applied|default_if_none:'' }}</td>
+        <td>{{ record.back_pay_vl|default_if_none:'' }}</td>
+        <td>{{ record.back_pay_sl|default_if_none:'' }}</td>
+        <td>{{ record.ot_regular_excess|default_if_none:'' }}</td>
+        <td>{{ record.nd_ot_reg_excess|default_if_none:'' }}</td>
+        <td>{{ record.legal_holiday|default_if_none:'' }}</td>
+        <td>{{ record.nd_legal_holiday|default_if_none:'' }}</td>
+        <td>{{ record.overnight_rate|default_if_none:'' }}</td>
+        <td>{{ record.project|default_if_none:'' }}</td>
+        <td>{{ record.sheet_name|default_if_none:'' }}</td>
+        <td>{{ record.upload.original_filename|default_if_none:'' }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="40">No DTR records found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="sheet2TableWrapper" style="display: none; overflow-x: auto; overflow-y: auto; max-height: 700px; border: 1px solid #ccc; padding: 10px;">
+  <h3>📄 Sheet 2 Records</h3>
+    <table id="sheet2Table" order="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; font-size: 14px; min-width: 1500px;">
+        <thead>
+        <tr>
+            <th>Sheet Name</th>
+            <th>Column A</th>
+            <th>Column B</th>
+            <th>Column C</th>
+            <th>Upload Source</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for record in sheet2_records %}
+        <tr>
+            <td>{{ record.sheet_name|default_if_none:'' }}</td>
+            <td>{{ record.col_a|default_if_none:'' }}</td>
+            <td>{{ record.col_b|default_if_none:'' }}</td>
+            <td>{{ record.col_c|default_if_none:'' }}</td>
+            <td>{{ record.upload.original_filename|default_if_none:'' }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No records found for Sheet 2.</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div id="sheet3TableWrapper" style="display: none; overflow-x: auto; overflow-y: auto; max-height: 700px; border: 1px solid #ccc; padding: 10px;">
+  <h3>📄 Sheet 3 Records</h3>
+  <table id="sheet3Table" order="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; font-size: 14px; min-width: 1500px;">
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Supervisor</th>
+        <th>TL</th>
+        <th>Messenger</th>
+        <th>HK</th>
+        <th>G&L</th>
+        <th>Day Off Reliever</th>
+        <th>AA</th>
+        <th>Electrician</th>
+        <th>Plumber</th>
+        <th>Driver</th>
+        <th>Total</th>
+        <th>Sheet Name</th>
+        <th>Upload Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in sheet3_records %}
+      <tr>
+        <td>{{ record.project|default_if_none:'' }}</td>
+        <td>{{ record.supervisor|default_if_none:'' }}</td>
+        <td>{{ record.tl|default_if_none:'' }}</td>
+        <td>{{ record.messenger|default_if_none:'' }}</td>
+        <td>{{ record.hk|default_if_none:'' }}</td>
+        <td>{{ record.gnl|default_if_none:'' }}</td>
+        <td>{{ record.day_off_reliever|default_if_none:'' }}</td>
+        <td>{{ record.aa|default_if_none:'' }}</td>
+        <td>{{ record.electrician|default_if_none:'' }}</td>
+        <td>{{ record.plumber|default_if_none:'' }}</td>
+        <td>{{ record.driver|default_if_none:'' }}</td>
+        <td>{{ record.total|default_if_none:'' }}</td>
+        <td>{{ record.sheet_name|default_if_none:'' }}</td>
+        <td>{{ record.upload.original_filename|default_if_none:'' }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="14">No records found for Sheet 3.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div id="sheet4TableWrapper" style="display: none; overflow-x: auto; overflow-y: auto; max-height: 500px; border: 1px solid #ccc; padding: 10px;">
+  <h3>📄 Sheet 4 Records</h3>
+  <table id="sheet4Table" order="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; font-size: 14px; min-width: 1500px;">
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Sheet Name</th>
+        <th>Upload Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in sheet4_records %}
+      <tr>
+        <td>{{ record.project|default_if_none:'' }}</td>
+        <td>{{ record.sheet_name|default_if_none:'' }}</td>
+        <td>{{ record.upload.original_filename|default_if_none:'' }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3">No records found for Sheet 4.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+    <h2>🕓 Daily Time Record Summary</h2>
+    <form method="GET" class="date-range-form">
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" value="{{ request.GET.start_date }}">
+
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date" name="end_date" value="{{ request.GET.end_date }}">
+
+        <button type="submit">Filter</button>
+    </form>
+    {% if start_date and end_date %}
+        <p class="date-range">for the period of <strong>{{ start_date }}</strong> - <strong>{{ end_date }}</strong></p>
+    {% endif %}
+
+<table class="dtr-summary-table" id="dtr-summary-table">
+  <thead>
+    <tr>
+      <th rowspan="2">Emp No.</th>
+      <th rowspan="2">Name</th>
+      <th colspan="5">DUTY (By Days)</th>
+      <th colspan="2">LATE / UT</th>
+      <th colspan="4">WORK (By Hours)</th>
+      <th colspan="4">DAY-OFF (By Hours)</th>
+      <th colspan="4">SH (By Hours)</th>
+      <th colspan="4">LH (By Hours)</th>
+      <th colspan="4">DAY-OFF - SH (By Hours)</th>
+      <th colspan="4">DAY-OFF - LH (By Hours)</th>
+    </tr>
+    <tr>
+      
+      <th>WRK</th>
+      <th>ABS</th>
+      <th>LV</th>
+      <th>HOL</th>
+      <th>RES</th>
+
+      <th>LATE</th>
+      <th>UT</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>12345</td>
+      <td>Juan Dela Cruz</td>
+      <td>22</td>
+      <td>2</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0.25</td>
+      <td>0.50</td>
+      <td>160</td>
+      <td>10</td>
+      <td>5</td>
+      <td>2</td>
+      <td>8</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>8</td>
+      <td>2</td>
+      <td>1</td>
+      <td>0</td>
+      <td>8</td>
+      <td>2</td>
+      <td>1</td>
+      <td>0</td>
+      <td>4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+    <tfoot>
+    <tr>
+        <td>-</td>
+        <td><strong>Total</strong></td>
+        <td id="total-wrk">0</td>
+        <td id="total-abs">0</td>
+        <td id="total-lv">0</td>
+        <td id="total-hol">0</td>
+        <td id="total-res">0</td>
+        <td id="total-late">0</td>
+        <td id="total-ut">0</td>
+        <td id="total-wrk-reg">0</td>
+        <td id="total-wrk-ot">0</td>
+        <td id="total-wrk-nd">0</td>
+        <td id="total-wrk-otnd">0</td>
+        <td id="total-do-reg">0</td>
+        <td id="total-do-ot">0</td>
+        <td id="total-do-nd">0</td>
+        <td id="total-do-otnd">0</td>
+        <td id="total-sh-reg">0</td>
+        <td id="total-sh-ot">0</td>
+        <td id="total-sh-nd">0</td>
+        <td id="total-sh-otnd">0</td>
+        <td id="total-lh-reg">0</td>
+        <td id="total-lh-ot">0</td>
+        <td id="total-lh-nd">0</td>
+        <td id="total-lh-otnd">0</td>
+        <td id="total-dosh-reg">0</td>
+        <td id="total-dosh-ot">0</td>
+        <td id="total-dosh-nd">0</td>
+        <td id="total-dosh-otnd">0</td>
+        <td id="total-dolh-reg">0</td>
+        <td id="total-dolh-ot">0</td>
+        <td id="total-dolh-nd">0</td>
+        <td id="total-dolh-otnd">0</td>
+    </tr>
+    </tfoot>
+  </table>
+    </div>
+  </div>
+</div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const sheetFilter = document.getElementById('sheetFilter');
+      const wrappers = {
+        dtr: document.getElementById('dtrTableWrapper'),
+        sheet2: document.getElementById('sheet2TableWrapper'),
+        sheet3: document.getElementById('sheet3TableWrapper'),
+        sheet4: document.getElementById('sheet4TableWrapper'),
+      };
+
+      function showOnly(wrapperToShow) {
+        Object.values(wrappers).forEach(wrapper => wrapper.style.display = 'none');
+        if (wrapperToShow) wrapperToShow.style.display = 'block';
+      }
+
+      sheetFilter.addEventListener('change', function () {
+        const selected = sheetFilter.value.trim().toLowerCase();
+        let shown = false;
+        Object.values(wrappers).forEach(wrapper => wrapper.style.display = 'none');
+
+        for (let key in wrappers) {
+          const wrapper = wrappers[key];
+          const sheetName = (wrapper.dataset.sheetName || '').trim().toLowerCase();
+
+          if (selected === "" && sheetName === "all sheets") {
+            wrapper.style.display = 'block';
+            shown = true;
+            break;
+          }
+
+          if (sheetName === selected) {
+            wrapper.style.display = 'block';
+            shown = true;
+            break;
+          }
+
+          if (!shown) {
+            if (selected.includes('sheet 2')) {
+              showOnly(wrappers.sheet2); shown = true; break;
+            } else if (selected.includes('sheet 3')) {
+              showOnly(wrappers.sheet3); shown = true; break;
+            } else if (selected.includes('sheet 4')) {
+              showOnly(wrappers.sheet4); shown = true; break;
+            }
+          }
+        }
+
+        if (!shown) {
+          showOnly(wrappers.dtr);
+        }
+      });
+
+      document.getElementById('searchInput').addEventListener('keyup', function () {
+        const query = this.value.toLowerCase();
+        let visibleTable = null;
+
+        for (let key in wrappers) {
+          const wrapper = wrappers[key];
+          if (wrapper.style.display !== 'none') {
+            visibleTable = wrapper.querySelector('table');
+            break;
+          }
+        }
+
+        if (!visibleTable) return;
+
+        const rows = visibleTable.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          row.style.display = [...row.cells].some(cell =>
+            cell.textContent.toLowerCase().includes(query)
+          ) ? '' : 'none';
+        });
+      });
+
+      document.querySelectorAll('table').forEach(table => {
+        table.querySelectorAll('td').forEach(cell => {
+          if (cell.textContent.trim() === '') {
+            cell.textContent = '0';
+          }
+        });
+      });
+    });
+
+    function scrollToTable() {
+        const table = document.getElementById('dtr-summary-table');
+        if (table) {
+            table.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+    function exportTableToExcel(tableID, filename = 'dtr_summary.xlsx') {
+    const table = document.getElementById(tableID);
+
+    const tableClone = table.cloneNode(true);
+
+    const tfoot = tableClone.querySelector('tfoot');
+    if (tfoot) {
+        const tfootRows = tfoot.querySelectorAll('tr');
+        const newTbody = document.createElement('tbody');
+
+        tfootRows.forEach(row => {
+            newTbody.appendChild(row.cloneNode(true));
+        });
+
+        tfoot.remove();
+        tableClone.appendChild(newTbody);
+    }
+
+    const html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:x="urn:schemas-microsoft-com:office:excel"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                table, th, td {
+                    border: 1px solid black;
+                    border-collapse: collapse;
+                    text-align: center;
+                    padding: 5px;
+                }
+                th {
+                    background-color: #f2f2f2;
+                }
+                tfoot {
+                background-color: #f2f2f2;
+                }
+            </style>
+        </head>
+        <body>
+            ${tableClone.outerHTML}
+        </body>
+        </html>`;
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function calculateTotals() {
+    const table = document.getElementById('dtr-summary-table');
+    const rows = table.querySelectorAll('tbody tr');
+
+    const totals = Array(32).fill(0);
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      for (let i = 2; i < cells.length; i++) {
+        const value = parseFloat(cells[i].textContent) || 0;
+        totals[i - 2] += value;
+      }
+    });
+
+    const footerIds = [
+      "total-wrk", "total-abs", "total-lv", "total-hol", "total-res",
+      "total-late", "total-ut",
+      "total-wrk-reg", "total-wrk-ot", "total-wrk-nd", "total-wrk-otnd",
+      "total-do-reg", "total-do-ot", "total-do-nd", "total-do-otnd",
+      "total-sh-reg", "total-sh-ot", "total-sh-nd", "total-sh-otnd",
+      "total-lh-reg", "total-lh-ot", "total-lh-nd", "total-lh-otnd",
+      "total-dosh-reg", "total-dosh-ot", "total-dosh-nd", "total-dosh-otnd",
+      "total-dolh-reg", "total-dolh-ot", "total-dolh-nd", "total-dolh-otnd"
+    ];
+
+    totals.forEach((val, i) => {
+      const cell = document.getElementById(footerIds[i]);
+      if (cell) {
+        cell.textContent = val.toFixed(2);
+      }
+    });
+  }
+  window.addEventListener('load', calculateTotals);
+
+  function toggleDropdown() {
+    document.querySelector('.dropdown').classList.toggle('show');
+}
+
+  document.addEventListener('click', function(event) {
+      const dropdown = document.querySelector('.dropdown');
+      if (!dropdown.contains(event.target)) {
+          dropdown.classList.remove('show');
+      }
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+body.light {
+  background-color:#f2f4f8;;
+  color: black;
+}
+
+body.dark {
+  background-color: #121212;
+  color: white;
+}
+
+body.small {
+  font-size: 12px;
+}
+
+body.medium {
+  font-size: 16px;
+}
+
+body.large {
+  font-size: 20px;
+}
+
+body.compact {
+  padding: 8px;
+}
+
+body.comfortable {
+  padding: 16px;
+}
+
+body.spacious {
+  padding: 24px;
+}

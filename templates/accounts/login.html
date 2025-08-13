@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PMG Time Central</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="icon" type="image/png" href="{% static 'images/pmgi.png' %}">
+</head>
+<body>
+    <div class="login-header-text">
+        <h1 style="font-size: 40px;">PROFESSIONAL MAINTENANCE GROUP, INC.</h1>
+        <h1 style="font-size: 30px;">PMG TIME CENTRAL</h1>
+        <p>A Daily Time Recorder System</p>
+    </div>
+
+    <div class="login-container">
+        
+        <div class="image-row">
+            <img src="{% static 'images/pmgi.png' %}" alt="Logo 1" class="logo-img">
+            <img src="{% static 'images/sgslogos.png' %}" alt="Logo 2" class="logo-img">
+        </div>
+
+        <p style="text-align:center; font-size:16px; color: #666;">Please log in to continue</p>
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</body>
+</html>

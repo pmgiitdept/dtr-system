@@ -1,0 +1,166 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Accounts List</title>
+  <link rel="stylesheet" href="{% static 'css/accounts_list.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'images/pmgi.png' %}">
+</head>
+<body>
+  <header class="page-header">
+    <div class="header-left">
+      <span class="company-name">PROFESSIONAL MAINTENANCE GROUP, INC. - PMG TIME CENTRAL</span>
+    </div>
+    <div class="header-right">
+      <img src="{% static 'images/pmgi.png' %}" alt="Logo 1" class="header-logo">
+      <img src="{% static 'images/sgslogos.png' %}" alt="Logo 2" class="header-logo">
+    </div>
+  </header>
+
+  <div class="main-layout">
+  <aside class="sidebar">
+    <h3>📂 Actions</h3>
+    <a href="{% url 'admin_dashboard' %}" class="dashboard-btn">⬅ Back to Dashboard</a>
+    <a href="{% url 'accounts_list' %}" class="account-btn">👥 Accounts</a>
+    <a href="{% url 'transaction_history' %}" class="transaction-btn">📜 History</a>
+
+    <div class="sidebar-footer">
+    <p>Welcome, <strong>{{ request.user.username }}</strong></p>
+        <div class="header-buttons">
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+  </aside>
+
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h1>👥 Accounts List</h1>
+      </div>
+    </div>
+    <hr>
+    <section class="history-section">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>📜 Registered Users</h3>
+        <div>
+        <a href="{% url 'add_account' %}" class="add-btn">➕ Add Account</a>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>User Type</th>
+            <th>Date Joined</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for account in accounts %}
+            <tr class="clickable-row" data-user-id="{{ account.id }}">
+            <td>{{ account.username }}</td>
+            <td>{{ account.email }}</td>
+            <td>{{ account.user_type }}</td>
+            <td>{{ account.date_joined|date:"Y-m-d H:i" }}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="edit-btn" onclick="location.href='{% url 'edit_account' account.id %}';">✏ Edit</button>
+                    <form action="{% url 'delete_account' account.id %}" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="delete-btn" onclick="return confirm('Are you sure you want to delete this account?');">🗑 Delete</button>
+                    </form>
+                </div>
+            </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">No accounts found.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </section>
+  </div>
+</div>
+
+<div id="userModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="close">&times;</span>
+    <h3>User Info</h3>
+    <div id="userInfo"></div>
+    <h4>Upload History</h4>
+    <div id="uploadHistory"></div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('closeModal').onclick = function() {
+    document.getElementById('userModal').style.display = "none";
+  };
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('userModal');
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  };
+
+  document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const userId = row.getAttribute('data-user-id');
+      fetchUserData(userId);
+    });
+  });
+
+  function fetchUserData(userId) {
+  fetch(`/accounts/api/user-info/${userId}/`)  
+    .then(response => response.json())
+    .then(data => {
+      const userInfoDiv = document.getElementById('userInfo');
+      userInfoDiv.innerHTML = `
+        <p><strong>Username:</strong> ${data.username}</p>
+        <p><strong>Email:</strong> ${data.email}</p>
+        <p><strong>User Type:</strong> ${data.user_type}</p>
+        <p><strong>Date Joined:</strong> ${data.date_joined}</p>
+      `;
+
+      const uploadDiv = document.getElementById('uploadHistory');
+      if (data.uploads.length > 0) {
+        let uploadsHtml = `
+          <table class="upload-history-table" style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 8px;">Filename</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Uploaded At</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        data.uploads.forEach(file => {
+          uploadsHtml += `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px;">${file.filename}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${file.uploaded_at}</td>
+            </tr>
+          `;
+        });
+        uploadsHtml += `
+            </tbody>
+          </table>
+        `;
+        uploadDiv.innerHTML = uploadsHtml;
+      } else {
+        uploadDiv.innerHTML = '<p>No uploads found.</p>';
+      }
+
+      document.getElementById('userModal').style.display = "block";
+    })
+    .catch(error => {
+      alert('Error loading user data.');
+      console.error(error);
+    });
+}
+</script>
+</body>
+</html>
