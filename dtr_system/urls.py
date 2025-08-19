@@ -1,36 +1,28 @@
-"""
-URL configuration for dtr_system project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path, include
-from core.views import admin_dashboard, client_dashboard
+from core import views as core_views
 from django.conf import settings
 from django.conf.urls.static import static
-from core import views
 import os
+from accounts import views as accounts_views
 
 urlpatterns = [
-    path('', include('accounts.urls')),
-    path('dashboard/admin/', admin_dashboard, name='admin_dashboard'),
-    path('dashboard/client/', client_dashboard, name='client_dashboard'),
-    path('dashboard/clear/', views.clear_data, name='clear_data'),
+    # Root URL goes to login page
+    path('', accounts_views.login_view, name='login'),
+
+    # Django admin
+    path('admin/', admin.site.urls),
+
+    # Accounts URLs
     path('accounts/', include('accounts.urls')),
-]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-# This file defines the URL patterns for the dtr_system project, including admin and dashboard views.
-# The admin site is included for development purposes, and the dashboard paths are defined for both admin
+
+    # Core views
+    path('dashboard/clear/', core_views.clear_data, name='clear_data'),
+    path('ai/', accounts_views.ai_assistant, name='ai_assistant'),
+    path('ai_query_stream/', accounts_views.ai_query_stream, name='ai_query_stream'),
+    path('upload_file/', accounts_views.upload_file, name='upload_file'),
+    path('user-info-api/<int:user_id>/', accounts_views.user_info_api, name='user_info_api'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
     urlpatterns += static('/static/', document_root=settings.STATIC_ROOT)

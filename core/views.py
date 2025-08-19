@@ -5,6 +5,10 @@ from .models import ExcelUpload, DTRRecord, ProjectListRecord, ProjectManpowerRe
 import openpyxl
 from datetime import datetime
 from django.contrib import messages
+import requests
+from django.http import JsonResponse
+import json
+from django.views.decorators.csrf import csrf_exempt
 
 @login_required
 def client_dashboard(request):

@@ -144,4 +144,4 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # or larger
-# This setting limits the size of uploaded files to 5MB, which can be adjusted as needed.
+# This setting limits the size of uploaded files to 5MB, which can be adjusted as needed.\

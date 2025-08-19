@@ -18,9 +18,180 @@ from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.core.paginator import Paginator
 from django.core.mail import send_mail, BadHeaderError
+import requests
+from django.http import JsonResponse
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 
 User = get_user_model()
+AI_SERVICE_URL = "http://127.0.0.1:8001"  # your FastAPI server
 
+@login_required
+def user_info_api(request, user_id):
+    from core.models import ExcelUpload
+    uploads = ExcelUpload.objects.filter(user_id=user_id).order_by('-uploaded_at')
+    data = [
+        {"filename": u.file.name.split('/')[-1], "uploaded_at": u.uploaded_at.strftime('%Y-%m-%d %H:%M')}
+        for u in uploads
+    ]
+    return JsonResponse({"uploads": data})
+
+# -------------------- AI --------------------
+def ask_ai(query, session_id, user_id):
+    """
+    Call the FastAPI AI service and return the response.
+    """
+    try:
+        response = requests.post(
+            f"{AI_SERVICE_URL}/ask",
+            json={
+                "user_input": query,
+                "session_id": session_id,
+                "user_id": user_id
+            },
+            timeout=60  # 1 minute timeout
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.Timeout:
+        return {"response": "⚠ AI service timed out. Try again later."}
+    except requests.RequestException as e:
+        return {"response": f"⚠ AI service request failed: {e}"}
+
+@login_required
+def ai_assistant(request):
+    """
+    Render AI assistant page. Optionally handle form-based queries.
+    """
+    response_data = None
+    if request.method == "POST":
+        query = request.POST.get("query")
+        session_id = str(request.user.id)
+        user_id = str(request.user.id)
+
+        response_data = ask_ai(query, session_id, user_id)
+
+    return render(request, "core/ai_assistant.html", {"response": response_data})
+
+@login_required
+@csrf_exempt
+def ai_query_stream(request):
+    """
+    SSE endpoint to stream AI responses from FastAPI to browser.
+    """
+    if request.method != "GET":
+        return JsonResponse({"reply": "Invalid request method"}, status=400)
+
+    import requests
+    from django.http import StreamingHttpResponse
+
+    session_id = str(request.user.id)
+    user_id = str(request.user.id)
+    question = request.GET.get("question", "")
+
+    if not question:
+        return JsonResponse({"reply": "No question provided"}, status=400)
+
+    fastapi_url = f"{AI_SERVICE_URL}/ask_stream?session_id={session_id}&user_id={user_id}&question={question}"
+
+    def stream_generator():
+        try:
+            with requests.get(fastapi_url, stream=True) as r:
+                for line in r.iter_lines():
+                    if line:
+                        # Important: proper SSE formatting
+                        yield f"data: {line.decode('utf-8')}\n\n"
+        except Exception as e:
+            yield f'data: {{"text":"⚠ Stream error: {str(e)}"}}\n\n'
+
+    response = StreamingHttpResponse(stream_generator(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    return response
+
+@login_required
+@csrf_exempt
+def upload_file(request):
+    """
+    Upload file to FastAPI background processor, save locally, and save DB record.
+    """
+    if request.method == "POST":
+        file = request.FILES.get("file")
+        if not file:
+            return JsonResponse({"success": False, "error": "No file provided."})
+
+        try:
+            # Save locally first
+            user_folder = os.path.join(settings.MEDIA_ROOT, "uploads", str(request.user.id))
+            os.makedirs(user_folder, exist_ok=True)
+            file_path = os.path.join(user_folder, file.name)
+
+            with open(file_path, "wb") as f:
+                for chunk in file.chunks():
+                    f.write(chunk)
+
+            # Create DB record
+            ExcelUpload.objects.create(
+                uploaded_by=request.user,
+                original_filename=file.name,
+                file=f"uploads/{request.user.id}/{file.name}",
+                uploaded_at=timezone.now()
+            )
+
+            # Send to FastAPI
+            files = {"file": (file.name, open(file_path, "rb"))}
+            data = {"session_id": str(request.user.id), "user_id": str(request.user.id)}
+
+            resp = requests.post(
+                f"{AI_SERVICE_URL}/upload",
+                files=files,
+                data=data,
+                timeout=120
+            )
+            resp.raise_for_status()
+            return JsonResponse(resp.json())
+
+        except requests.Timeout:
+            return JsonResponse({"success": False, "error": "AI service timed out."})
+        except requests.RequestException as e:
+            return JsonResponse({"success": False, "error": f"AI service request failed: {e}"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+@login_required
+@csrf_exempt
+def generate_chart(request):
+    """
+    Call FastAPI /chart endpoint to generate a chart from uploaded files.
+    """
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            user_input = data.get("user_input", "")
+            session_id = str(request.user.id)
+            user_id = str(request.user.id)
+
+            resp = requests.post(
+                f"{AI_SERVICE_URL}/chart",
+                json={
+                    "user_input": user_input,
+                    "session_id": session_id,
+                    "user_id": user_id
+                },
+                timeout=120  # allow extra time for chart generation
+            )
+            resp.raise_for_status()
+            return JsonResponse(resp.json())
+
+        except requests.Timeout:
+            return JsonResponse({"error": "⚠ Chart generation timed out."})
+        except requests.RequestException as e:
+            return JsonResponse({"error": f"⚠ Chart generation request failed: {e}"})
+        except Exception as e:
+            return JsonResponse({"error": f"⚠ Server error: {e}"})
+    return JsonResponse({"error": "Invalid request method"})
+
+# -------------------- Admin check --------------------
 def is_admin(user):
     return user.is_authenticated and user.user_type == 'admin'
 

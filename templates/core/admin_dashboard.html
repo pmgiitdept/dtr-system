@@ -25,6 +25,7 @@
     <button class="account-btn" onclick="location.href='{% url 'accounts_list' %}';">👥 Accounts</button>
     <button class="transaction-btn" onclick="location.href='{% url 'transaction_history' %}';">📜 History</button>
     <button type="button" class="account-btn" onclick="location.href='{% url 'client_side_view' %}'">👤 View Client Side</button>
+    <button type="button" class="account-btn" onclick="location.href='{% url 'ai_assistant' %}'">👤 View AI Assistant</button>
     <div class="dropdown">
         <button class="settings-btn" onclick="toggleDropdown()">⚙ Settings ▾</button>
         <div id="settings-dropdown" class="dropdown-content">
@@ -76,6 +77,152 @@
         <option value="Sheet 4">PROJECT</option>
       </select>
     </div>
+
+    <h2>🕓 Daily Time Record Summary</h2>
+    <form method="GET" class="date-range-form">
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" value="{{ request.GET.start_date }}">
+
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date" name="end_date" value="{{ request.GET.end_date }}">
+
+        <button type="submit">Filter</button>
+    </form>
+    {% if start_date and end_date %}
+        <p class="date-range">for the period of <strong>{{ start_date }}</strong> - <strong>{{ end_date }}</strong></p>
+    {% endif %}
+
+<table class="dtr-summary-table" id="dtr-summary-table">
+  <thead>
+    <tr>
+      <th rowspan="2">Emp No.</th>
+      <th rowspan="2">Name</th>
+      <th colspan="5">DUTY (By Days)</th>
+      <th colspan="2">LATE / UT</th>
+      <th colspan="4">WORK (By Hours)</th>
+      <th colspan="4">DAY-OFF (By Hours)</th>
+      <th colspan="4">SH (By Hours)</th>
+      <th colspan="4">LH (By Hours)</th>
+      <th colspan="4">DAY-OFF - SH (By Hours)</th>
+      <th colspan="4">DAY-OFF - LH (By Hours)</th>
+    </tr>
+    <tr>
+      
+      <th>WRK</th>
+      <th>ABS</th>
+      <th>LV</th>
+      <th>HOL</th>
+      <th>RES</th>
+
+      <th>LATE</th>
+      <th>UT</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+
+      <th>REG</th>
+      <th>OT</th>
+      <th>ND</th>
+      <th>OTND</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>12345</td>
+      <td>Juan Dela Cruz</td>
+      <td>22</td>
+      <td>2</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0.25</td>
+      <td>0.50</td>
+      <td>160</td>
+      <td>10</td>
+      <td>5</td>
+      <td>2</td>
+      <td>8</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>8</td>
+      <td>2</td>
+      <td>1</td>
+      <td>0</td>
+      <td>8</td>
+      <td>2</td>
+      <td>1</td>
+      <td>0</td>
+      <td>4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+    <tfoot>
+    <tr>
+        <td>-</td>
+        <td><strong>Total</strong></td>
+        <td id="total-wrk">0</td>
+        <td id="total-abs">0</td>
+        <td id="total-lv">0</td>
+        <td id="total-hol">0</td>
+        <td id="total-res">0</td>
+        <td id="total-late">0</td>
+        <td id="total-ut">0</td>
+        <td id="total-wrk-reg">0</td>
+        <td id="total-wrk-ot">0</td>
+        <td id="total-wrk-nd">0</td>
+        <td id="total-wrk-otnd">0</td>
+        <td id="total-do-reg">0</td>
+        <td id="total-do-ot">0</td>
+        <td id="total-do-nd">0</td>
+        <td id="total-do-otnd">0</td>
+        <td id="total-sh-reg">0</td>
+        <td id="total-sh-ot">0</td>
+        <td id="total-sh-nd">0</td>
+        <td id="total-sh-otnd">0</td>
+        <td id="total-lh-reg">0</td>
+        <td id="total-lh-ot">0</td>
+        <td id="total-lh-nd">0</td>
+        <td id="total-lh-otnd">0</td>
+        <td id="total-dosh-reg">0</td>
+        <td id="total-dosh-ot">0</td>
+        <td id="total-dosh-nd">0</td>
+        <td id="total-dosh-otnd">0</td>
+        <td id="total-dolh-reg">0</td>
+        <td id="total-dolh-ot">0</td>
+        <td id="total-dolh-nd">0</td>
+        <td id="total-dolh-otnd">0</td>
+    </tr>
+    </tfoot>
+  </table>
 
     <div class="history-section">
       <h3>🧾 Uploaded DTR Records</h3>
@@ -282,152 +429,6 @@
     </tbody>
   </table>
 </div>
-
-    <h2>🕓 Daily Time Record Summary</h2>
-    <form method="GET" class="date-range-form">
-        <label for="start_date">Start Date:</label>
-        <input type="date" id="start_date" name="start_date" value="{{ request.GET.start_date }}">
-
-        <label for="end_date">End Date:</label>
-        <input type="date" id="end_date" name="end_date" value="{{ request.GET.end_date }}">
-
-        <button type="submit">Filter</button>
-    </form>
-    {% if start_date and end_date %}
-        <p class="date-range">for the period of <strong>{{ start_date }}</strong> - <strong>{{ end_date }}</strong></p>
-    {% endif %}
-
-<table class="dtr-summary-table" id="dtr-summary-table">
-  <thead>
-    <tr>
-      <th rowspan="2">Emp No.</th>
-      <th rowspan="2">Name</th>
-      <th colspan="5">DUTY (By Days)</th>
-      <th colspan="2">LATE / UT</th>
-      <th colspan="4">WORK (By Hours)</th>
-      <th colspan="4">DAY-OFF (By Hours)</th>
-      <th colspan="4">SH (By Hours)</th>
-      <th colspan="4">LH (By Hours)</th>
-      <th colspan="4">DAY-OFF - SH (By Hours)</th>
-      <th colspan="4">DAY-OFF - LH (By Hours)</th>
-    </tr>
-    <tr>
-      
-      <th>WRK</th>
-      <th>ABS</th>
-      <th>LV</th>
-      <th>HOL</th>
-      <th>RES</th>
-
-      <th>LATE</th>
-      <th>UT</th>
-
-      <th>REG</th>
-      <th>OT</th>
-      <th>ND</th>
-      <th>OTND</th>
-
-      <th>REG</th>
-      <th>OT</th>
-      <th>ND</th>
-      <th>OTND</th>
-
-      <th>REG</th>
-      <th>OT</th>
-      <th>ND</th>
-      <th>OTND</th>
-
-      <th>REG</th>
-      <th>OT</th>
-      <th>ND</th>
-      <th>OTND</th>
-
-      <th>REG</th>
-      <th>OT</th>
-      <th>ND</th>
-      <th>OTND</th>
-
-      <th>REG</th>
-      <th>OT</th>
-      <th>ND</th>
-      <th>OTND</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>12345</td>
-      <td>Juan Dela Cruz</td>
-      <td>22</td>
-      <td>2</td>
-      <td>1</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0.25</td>
-      <td>0.50</td>
-      <td>160</td>
-      <td>10</td>
-      <td>5</td>
-      <td>2</td>
-      <td>8</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0</td>
-      <td>8</td>
-      <td>2</td>
-      <td>1</td>
-      <td>0</td>
-      <td>8</td>
-      <td>2</td>
-      <td>1</td>
-      <td>0</td>
-      <td>4</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0</td>
-      <td>4</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-  </tbody>
-    <tfoot>
-    <tr>
-        <td>-</td>
-        <td><strong>Total</strong></td>
-        <td id="total-wrk">0</td>
-        <td id="total-abs">0</td>
-        <td id="total-lv">0</td>
-        <td id="total-hol">0</td>
-        <td id="total-res">0</td>
-        <td id="total-late">0</td>
-        <td id="total-ut">0</td>
-        <td id="total-wrk-reg">0</td>
-        <td id="total-wrk-ot">0</td>
-        <td id="total-wrk-nd">0</td>
-        <td id="total-wrk-otnd">0</td>
-        <td id="total-do-reg">0</td>
-        <td id="total-do-ot">0</td>
-        <td id="total-do-nd">0</td>
-        <td id="total-do-otnd">0</td>
-        <td id="total-sh-reg">0</td>
-        <td id="total-sh-ot">0</td>
-        <td id="total-sh-nd">0</td>
-        <td id="total-sh-otnd">0</td>
-        <td id="total-lh-reg">0</td>
-        <td id="total-lh-ot">0</td>
-        <td id="total-lh-nd">0</td>
-        <td id="total-lh-otnd">0</td>
-        <td id="total-dosh-reg">0</td>
-        <td id="total-dosh-ot">0</td>
-        <td id="total-dosh-nd">0</td>
-        <td id="total-dosh-otnd">0</td>
-        <td id="total-dolh-reg">0</td>
-        <td id="total-dolh-ot">0</td>
-        <td id="total-dolh-nd">0</td>
-        <td id="total-dolh-otnd">0</td>
-    </tr>
-    </tfoot>
-  </table>
     </div>
   </div>
 </div>

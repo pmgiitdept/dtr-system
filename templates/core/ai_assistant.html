@@ -1,0 +1,197 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Assistant</title>
+  <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'images/pmgi.png' %}">
+  <style>
+    /* Chat-specific styles */
+    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 120px); border: 1px solid #ccc; padding: 10px; overflow-y: auto; background-color: #fafafa; }
+    .chat-message { margin: 5px 0; padding: 10px; border-radius: 10px; max-width: 70%; }
+    .user-msg { background-color: #d1e7dd; align-self: flex-end; font-size: 16px; }
+    .ai-msg { background-color: #f8d7da; align-self: flex-start; font-size: 16px; }
+    .chat-input-section { display: flex; margin-top: 10px; }
+    .chat-input-section input { flex: 1; padding: 10px; border-radius: 5px 0 0 5px; border: 1px solid #ccc; font-size: 14px; }
+    .chat-input-section button { padding: 10px 20px; border-radius: 0 5px 5px 0; border: 1px solid #ccc; background-color: #0d6efd; color: white; cursor: pointer; }
+    .chat-input-section button:hover { background-color: #0b5ed7; }
+    .file-upload-section { margin: 10px 0; }
+    .ai-table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    .ai-table th, .ai-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    .ai-table th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+<header class="page-header">
+  <div class="header-left">
+    <span class="company-name">PROFESSIONAL MAINTENANCE GROUP, INC. - AI ASSISTANT</span>
+  </div>
+  <div class="header-right">
+    <img src="{% static 'images/pmgi.png' %}" alt="Logo 1" class="header-logo">
+    <img src="{% static 'images/sgslogos.png' %}" alt="Logo 2" class="header-logo">
+  </div>
+</header>
+
+<div class="main-layout">
+  <aside class="sidebar">
+    <h3>📂 Actions</h3>
+    <button class="account-btn" onclick="location.href='{% url 'admin_dashboard' %}'">🏠 Dashboard</button>
+    <button class="transaction-btn" onclick="location.href='{% url 'accounts_list' %}'">👥 Accounts</button>
+    <button class="settings-btn" onclick="location.href='{% url 'admin_settings' %}'">⚙ Settings</button>
+    <div class="sidebar-footer">
+      <p>Welcome, <strong>{{ request.user.username }}</strong></p>
+      <div class="header-buttons">
+        <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="dashboard-container">
+    <div class="header"><h1>🤖 AI Assistant</h1></div>
+
+    <div class="chat-container" id="chatContainer"></div>
+
+    <!-- File upload section -->
+    <div class="file-upload-section">
+      <form id="upload-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" id="fileInput" name="file" required />
+        <button type="submit">Upload</button>
+      </form>
+      <div id="upload-status"></div>
+    </div>
+
+    <div class="chat-input-section">
+      <input type="text" id="chatInput" placeholder="Type your message here..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const chatContainer = document.getElementById('chatContainer');
+const uploadStatus = document.getElementById('upload-status');
+
+// Convert Markdown tables to HTML
+function markdownTableToHTML(md) {
+    if (!/\|/.test(md)) return md;
+    const lines = md.trim().split('\n');
+    if (lines.length < 2) return md;
+    const header = lines[0].split('|').map(h => h.trim()).filter(Boolean);
+    const rows = lines.slice(2).map(line => line.split('|').map(c => c.trim()).filter(Boolean));
+    let html = '<table class="ai-table"><thead><tr>';
+    header.forEach(h => html += `<th>${h}</th>`); html += '</tr></thead><tbody>';
+    rows.forEach(r => { html += '<tr>'; r.forEach(c => html += `<td>${c}</td>`); html += '</tr>'; });
+    html += '</tbody></table>'; return html;
+}
+
+// Append message to chat
+function appendMessage(message, sender, temp=false) {
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('chat-message', sender==='user'?'user-msg':'ai-msg');
+    msgDiv.innerHTML = marked.parse(markdownTableToHTML(message));
+    if(temp) msgDiv.dataset.temp="true";
+    chatContainer.appendChild(msgDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    return msgDiv;
+}
+
+// Append chart image
+function appendChart(base64Data) {
+    const img = document.createElement('img');
+    img.src = "data:image/png;base64," + base64Data;
+    img.style.maxWidth="100%"; img.style.margin="10px 0";
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('chat-message','ai-msg'); wrapper.appendChild(img);
+    chatContainer.appendChild(wrapper);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// File upload via AJAX to Django view
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    if (!file) return alert("Please select a file.");
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    uploadStatus.textContent = "Uploading file... ⏳";
+
+    try {
+        const response = await fetch("{% url 'upload_file' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            uploadStatus.textContent = "✅ File uploaded! AI can now use it.";
+        } else {
+            uploadStatus.textContent = "❌ Upload failed: " + data.error;
+        }
+    } catch(err) {
+        uploadStatus.textContent = "⚠ Error: " + err.message;
+    }
+});
+
+// Chat streaming via FastAPI
+const FASTAPI_URL = "http://localhost:8001";
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim(); if(!message) return;
+    appendMessage(message,'user'); input.value='';
+
+    const aiMsgDiv = appendMessage('', 'ai', true);
+    let buffer = "";
+    let tableBuffer = "";
+    let insideTable = false;
+
+    const url = `${FASTAPI_URL}/ask_stream?session_id={{ request.user.id }}&user_id={{ request.user.id }}&question=${encodeURIComponent(message)}`;
+    const evtSource = new EventSource(url);
+
+    evtSource.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+
+            if(data.chart) appendChart(data.chart);
+
+            if(data.text) {
+                const lines = data.text.split("\n");
+
+                lines.forEach(line => {
+                    if(/\|/.test(line)) {
+                        // Inside table
+                        insideTable = true;
+                        tableBuffer += line + "\n";
+                    } else {
+                        // Outside table
+                        if(insideTable) {
+                            // Convert complete table buffer to HTML
+                            buffer += markdownTableToHTML(tableBuffer) + "\n";
+                            tableBuffer = "";
+                            insideTable = false;
+                        }
+                        buffer += line + "\n";
+                    }
+                });
+
+                aiMsgDiv.innerHTML = marked.parse(buffer);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        } catch(err){ console.error("Invalid SSE data:", event.data); }
+    };
+
+    evtSource.onerror = function(){ evtSource.close(); delete aiMsgDiv.dataset.temp; }
+}
+
+// Send on Enter key
+document.getElementById('chatInput').addEventListener('keypress', function(e){
+    if(e.key==='Enter'){ e.preventDefault(); sendMessage(); }
+});
+</script>
+</body>
+</html>
