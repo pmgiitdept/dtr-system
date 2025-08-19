@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}">
   <link rel="icon" type="image/png" href="{% static 'images/pmgi.png' %}">
   <style>
-    /* Chat-specific styles */
     .chat-container { display: flex; flex-direction: column; height: calc(100vh - 120px); border: 1px solid #ccc; padding: 10px; overflow-y: auto; background-color: #fafafa; }
     .chat-message { margin: 5px 0; padding: 10px; border-radius: 10px; max-width: 70%; }
     .user-msg { background-color: #d1e7dd; align-self: flex-end; font-size: 16px; }
@@ -52,7 +51,6 @@
 
     <div class="chat-container" id="chatContainer"></div>
 
-    <!-- File upload section -->
     <div class="file-upload-section">
       <form id="upload-form" enctype="multipart/form-data">
         {% csrf_token %}
@@ -74,7 +72,6 @@
 const chatContainer = document.getElementById('chatContainer');
 const uploadStatus = document.getElementById('upload-status');
 
-// Convert Markdown tables to HTML
 function markdownTableToHTML(md) {
     if (!/\|/.test(md)) return md;
     const lines = md.trim().split('\n');
@@ -87,7 +84,6 @@ function markdownTableToHTML(md) {
     html += '</tbody></table>'; return html;
 }
 
-// Append message to chat
 function appendMessage(message, sender, temp=false) {
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('chat-message', sender==='user'?'user-msg':'ai-msg');
@@ -98,7 +94,6 @@ function appendMessage(message, sender, temp=false) {
     return msgDiv;
 }
 
-// Append chart image
 function appendChart(base64Data) {
     const img = document.createElement('img');
     img.src = "data:image/png;base64," + base64Data;
@@ -109,7 +104,6 @@ function appendChart(base64Data) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// File upload via AJAX to Django view
 document.getElementById('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fileInput = document.getElementById('fileInput');
@@ -138,7 +132,6 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
     }
 });
 
-// Chat streaming via FastAPI
 const FASTAPI_URL = "http://localhost:8001";
 async function sendMessage() {
     const input = document.getElementById('chatInput');
@@ -164,13 +157,10 @@ async function sendMessage() {
 
                 lines.forEach(line => {
                     if(/\|/.test(line)) {
-                        // Inside table
                         insideTable = true;
                         tableBuffer += line + "\n";
                     } else {
-                        // Outside table
                         if(insideTable) {
-                            // Convert complete table buffer to HTML
                             buffer += markdownTableToHTML(tableBuffer) + "\n";
                             tableBuffer = "";
                             insideTable = false;
@@ -188,7 +178,6 @@ async function sendMessage() {
     evtSource.onerror = function(){ evtSource.close(); delete aiMsgDiv.dataset.temp; }
 }
 
-// Send on Enter key
 document.getElementById('chatInput').addEventListener('keypress', function(e){
     if(e.key==='Enter'){ e.preventDefault(); sendMessage(); }
 });

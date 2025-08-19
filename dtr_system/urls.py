@@ -7,16 +7,9 @@ import os
 from accounts import views as accounts_views
 
 urlpatterns = [
-    # Root URL goes to login page
     path('', accounts_views.login_view, name='login'),
-
-    # Django admin
     path('admin/', admin.site.urls),
-
-    # Accounts URLs
     path('accounts/', include('accounts.urls')),
-
-    # Core views
     path('dashboard/clear/', core_views.clear_data, name='clear_data'),
     path('ai/', accounts_views.ai_assistant, name='ai_assistant'),
     path('ai_query_stream/', accounts_views.ai_query_stream, name='ai_query_stream'),

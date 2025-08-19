@@ -25,7 +25,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
 User = get_user_model()
-AI_SERVICE_URL = "http://127.0.0.1:8001"  # your FastAPI server
+AI_SERVICE_URL = "http://127.0.0.1:8001"  
 
 @login_required
 def user_info_api(request, user_id):
@@ -50,7 +50,7 @@ def ask_ai(query, session_id, user_id):
                 "session_id": session_id,
                 "user_id": user_id
             },
-            timeout=60  # 1 minute timeout
+            timeout=60 
         )
         response.raise_for_status()
         return response.json()
@@ -100,7 +100,6 @@ def ai_query_stream(request):
             with requests.get(fastapi_url, stream=True) as r:
                 for line in r.iter_lines():
                     if line:
-                        # Important: proper SSE formatting
                         yield f"data: {line.decode('utf-8')}\n\n"
         except Exception as e:
             yield f'data: {{"text":"⚠ Stream error: {str(e)}"}}\n\n'
@@ -121,7 +120,6 @@ def upload_file(request):
             return JsonResponse({"success": False, "error": "No file provided."})
 
         try:
-            # Save locally first
             user_folder = os.path.join(settings.MEDIA_ROOT, "uploads", str(request.user.id))
             os.makedirs(user_folder, exist_ok=True)
             file_path = os.path.join(user_folder, file.name)
@@ -130,7 +128,6 @@ def upload_file(request):
                 for chunk in file.chunks():
                     f.write(chunk)
 
-            # Create DB record
             ExcelUpload.objects.create(
                 uploaded_by=request.user,
                 original_filename=file.name,
@@ -138,7 +135,6 @@ def upload_file(request):
                 uploaded_at=timezone.now()
             )
 
-            # Send to FastAPI
             files = {"file": (file.name, open(file_path, "rb"))}
             data = {"session_id": str(request.user.id), "user_id": str(request.user.id)}
 
@@ -178,7 +174,7 @@ def generate_chart(request):
                     "session_id": session_id,
                     "user_id": user_id
                 },
-                timeout=120  # allow extra time for chart generation
+                timeout=120 
             )
             resp.raise_for_status()
             return JsonResponse(resp.json())
@@ -345,7 +341,6 @@ def admin_settings(request):
 
     audit_logs = AuditLog.objects.all().order_by("-timestamp")[:50]
 
-    # Add all audit logs for activity log section
     activity_logs = AuditLog.objects.all().order_by("-timestamp")
 
     uploaded_files = ExcelUpload.objects.all().order_by('-uploaded_at')
@@ -386,16 +381,13 @@ def admin_settings(request):
             if form.is_valid():
                 action = form.cleaned_data.get("action")
                 if action == "save":
-                    # Save email settings
                     form.save()
                     AuditLog.objects.create(action="Updated Email Settings", user=request.user)
                     messages.success(request, "Email settings saved successfully.")
                     return redirect(f"{request.path}?section=email")
                 elif action == "test":
-                    # Send test email
                     test_email = form.cleaned_data.get("test_email")
                     if test_email:
-                        # Temporarily override email backend settings
                         from django.conf import settings as django_settings
                         original_email_host = django_settings.EMAIL_HOST
                         original_email_port = django_settings.EMAIL_PORT
@@ -408,7 +400,7 @@ def admin_settings(request):
                             django_settings.EMAIL_PORT = form.cleaned_data['email_port']
                             django_settings.EMAIL_HOST_USER = form.cleaned_data['email_host_user']
                             django_settings.EMAIL_HOST_PASSWORD = form.cleaned_data['email_host_password']
-                            django_settings.EMAIL_USE_TLS = True  # Or add checkbox to form to toggle
+                            django_settings.EMAIL_USE_TLS = True 
 
                             send_mail(
                                 subject="Test Email from Admin Settings",
@@ -424,14 +416,12 @@ def admin_settings(request):
                         except Exception as e:
                             messages.error(request, f"Failed to send test email: {str(e)}")
                         finally:
-                            # Restore original settings
                             django_settings.EMAIL_HOST = original_email_host
                             django_settings.EMAIL_PORT = original_email_port
                             django_settings.EMAIL_HOST_USER = original_email_host_user
                             django_settings.EMAIL_HOST_PASSWORD = original_email_host_password
                             django_settings.EMAIL_USE_TLS = original_email_use_tls
 
-                        # Don't redirect here to show messages on same page
                     else:
                         messages.error(request, "Please provide an email address to send the test email.")
                 else:
@@ -499,7 +489,7 @@ def client_side_view(request):
 @login_required
 def delete_uploaded_file(request, file_id):
     file_obj = get_object_or_404(ExcelUpload, id=file_id)
-    file_obj.file.delete()  # delete the file from storage
-    file_obj.delete()       # delete the DB record
+    file_obj.file.delete() 
+    file_obj.delete()    
     messages.success(request, "File deleted successfully.")
     return redirect('/accounts/admin-settings/?section=file')

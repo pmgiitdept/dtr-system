@@ -31,7 +31,6 @@ def client_dashboard(request):
                 max_col = sheet.max_column
 
                 if index == 0:
-                    # First sheet – DTR data with headers
                     for row in sheet.iter_rows(min_row=2, max_row=max_row, max_col=max_col, values_only=True):
                         if not row[0]:
                             continue
@@ -79,7 +78,6 @@ def client_dashboard(request):
                             project=row[38],
                         )
                 elif index == 1:
-                    # Sheet 2 – No header
                     for row in sheet.iter_rows(min_row=1, max_row=max_row, max_col=max_col, values_only=True):
                         Sheet2Record.objects.create(
                             upload=upload,
@@ -87,12 +85,10 @@ def client_dashboard(request):
                             col_a=row[0],
                             col_b=row[1],
                             col_c=row[2],
-                            # Add more if needed
                         )
                 elif index == 2:
-                    # Sheet 3 – With fixed headers like "PROJECT", "SUPERVISOR", etc.
                     for row in sheet.iter_rows(min_row=2, max_row=max_row, max_col=max_col, values_only=True):
-                        if not row[0]:  # Skip rows without a 'project' value
+                        if not row[0]:
                             continue
                         ProjectManpowerRecord.objects.create(
                             upload=upload,
@@ -111,7 +107,6 @@ def client_dashboard(request):
                             total=row[11],
                         )
                 elif index == 3:
-                    # Sheet 4 – Only 'project'
                     for row in sheet.iter_rows(min_row=2, max_row=max_row, max_col=max_col, values_only=True):
                         ProjectListRecord.objects.create(
                             upload=upload,
@@ -120,7 +115,7 @@ def client_dashboard(request):
                         )
 
             upload_status = "✅ Upload and data import successful!"
-            form = ExcelUploadForm()  # Reset form
+            form = ExcelUploadForm() 
         else:
             upload_status = "❌ Upload failed: Invalid file."
     else:
@@ -134,10 +129,8 @@ def client_dashboard(request):
         'uploads': uploads,
     })
 
-
-# Helper: only allow admin users
 def is_admin(user):
-    return user.is_superuser  # or use your custom condition
+    return user.is_superuser 
 
 @user_passes_test(is_admin)
 def admin_dashboard(request):
@@ -151,13 +144,11 @@ def admin_dashboard(request):
 
     uploaded_files = ExcelUpload.objects.all().order_by('-uploaded_at')
 
-    # Collect distinct sheet names from all record types
     dtr_sheets = DTRRecord.objects.values_list('sheet_name', flat=True)
     sheet2_sheets = Sheet2Record.objects.values_list('sheet_name', flat=True)
     sheet3_sheets = ProjectManpowerRecord.objects.values_list('sheet_name', flat=True)
     sheet4_sheets = ProjectListRecord.objects.values_list('sheet_name', flat=True)
 
-    # Combine and deduplicate
     all_sheet_names = list(set(dtr_sheets.union(sheet2_sheets, sheet3_sheets, sheet4_sheets)))
 
     return render(request, 'core/admin_dashboard.html', {
